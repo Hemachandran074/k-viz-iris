@@ -15,6 +15,8 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+  const [animationProgress, setAnimationProgress] = useState(0);
+  const animationRef = useRef<number>();
 
   // Update canvas size
   useEffect(() => {
@@ -33,6 +35,38 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
   }, []);
+
+  // Animation effect for lines
+  useEffect(() => {
+    if (userPoint) {
+      setAnimationProgress(0);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      
+      const startTime = Date.now();
+      const duration = 1000; // 1 second animation
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        setAnimationProgress(progress);
+        
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(animate);
+        }
+      };
+      
+      animate();
+    }
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [userPoint, k]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -135,19 +169,28 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
       const userX = scaleX(userPoint.petalLength);
       const userY = scaleY(userPoint.petalWidth);
 
-      // Draw lines to k nearest neighbors
+      // Draw lines to k nearest neighbors with animation
       ctx.strokeStyle = 'hsl(var(--neighbor-line))';
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 5]);
       
-      classificationResult.neighbors.forEach((neighbor) => {
+      classificationResult.neighbors.forEach((neighbor, index) => {
         const neighborX = scaleX(neighbor.point.petalLength);
         const neighborY = scaleY(neighbor.point.petalWidth);
         
-        ctx.beginPath();
-        ctx.moveTo(userX, userY);
-        ctx.lineTo(neighborX, neighborY);
-        ctx.stroke();
+        // Calculate line progress for this specific line
+        const lineDelay = index * 0.1; // Stagger each line by 100ms
+        const lineProgress = Math.max(0, Math.min(1, (animationProgress - lineDelay) / 0.8));
+        
+        if (lineProgress > 0) {
+          const endX = userX + (neighborX - userX) * lineProgress;
+          const endY = userY + (neighborY - userY) * lineProgress;
+          
+          ctx.beginPath();
+          ctx.moveTo(userX, userY);
+          ctx.lineTo(endX, endY);
+          ctx.stroke();
+        }
       });
       
       ctx.setLineDash([]);
@@ -177,7 +220,7 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
     // Update classification result
     onClassificationUpdate(classificationResult);
 
-  }, [userPoint, k, dimensions, onClassificationUpdate]);
+  }, [userPoint, k, dimensions, onClassificationUpdate, animationProgress]);
 
   return (
     <div className="w-full bg-card rounded-lg border p-4">
