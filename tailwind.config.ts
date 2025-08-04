@@ -61,6 +61,16 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				iris: {
+					setosa: 'hsl(var(--iris-setosa))',
+					versicolor: 'hsl(var(--iris-versicolor))',
+					virginica: 'hsl(var(--iris-virginica))'
+				},
+				ml: {
+					userPoint: 'hsl(var(--user-point))',
+					neighborLine: 'hsl(var(--neighbor-line))',
+					gridLine: 'hsl(var(--grid-line))'
 				}
 			},
 			borderRadius: {
