@@ -1,44 +1,61 @@
-import { IrisDataPoint } from '@/data/irisData';
+import { MovieDataPoint } from '@/data/movieData';
 
 export interface UserDataPoint {
-  sepalLength: number;
-  sepalWidth: number;
-  petalLength: number;
-  petalWidth: number;
+  age: number;
+  hoursStreamed: number;
 }
 
 export interface NeighborDistance {
-  point: IrisDataPoint;
+  point: MovieDataPoint;
   distance: number;
   index: number;
 }
 
 export interface KNNResult {
-  prediction: 'setosa' | 'versicolor' | 'virginica';
+  prediction: boolean;
   neighbors: NeighborDistance[];
-  confidence: { [key: string]: number };
+  confidence: number;
 }
 
-// Calculate Euclidean distance between two points
-export const calculateDistance = (point1: UserDataPoint, point2: IrisDataPoint): number => {
-  const diff1 = point1.sepalLength - point2.sepalLength;
-  const diff2 = point1.sepalWidth - point2.sepalWidth;
-  const diff3 = point1.petalLength - point2.petalLength;
-  const diff4 = point1.petalWidth - point2.petalWidth;
+// Calculate mean and standard deviation for standardization
+const calculateStats = (data: MovieDataPoint[]) => {
+  const ageMean = data.reduce((sum, point) => sum + point.age, 0) / data.length;
+  const hoursMean = data.reduce((sum, point) => sum + point.hoursStreamed, 0) / data.length;
+
+  const ageStd = Math.sqrt(data.reduce((sum, point) => sum + Math.pow(point.age - ageMean, 2), 0) / data.length);
+  const hoursStd = Math.sqrt(data.reduce((sum, point) => sum + Math.pow(point.hoursStreamed - hoursMean, 2), 0) / data.length);
+
+  return { ageMean, hoursMean, ageStd, hoursStd };
+};
+
+// Calculate Euclidean distance between standardized points
+export const calculateDistance = (point1: UserDataPoint, point2: MovieDataPoint, stats: { ageMean: number, hoursMean: number, ageStd: number, hoursStd: number }): number => {
+  // Standardize the values
+  const age1Std = (point1.age - stats.ageMean) / stats.ageStd;
+  const hours1Std = (point1.hoursStreamed - stats.hoursMean) / stats.hoursStd;
+  const age2Std = (point2.age - stats.ageMean) / stats.ageStd;
+  const hours2Std = (point2.hoursStreamed - stats.hoursMean) / stats.hoursStd;
   
-  return Math.sqrt(diff1 * diff1 + diff2 * diff2 + diff3 * diff3 + diff4 * diff4);
+  // Calculate Euclidean distance on standardized values
+  const diff1 = age1Std - age2Std;
+  const diff2 = hours1Std - hours2Std;
+  
+  return Math.sqrt(diff1 * diff1 + diff2 * diff2);
 };
 
 // Perform KNN classification
 export const classifyWithKNN = (
   userPoint: UserDataPoint, 
-  dataset: IrisDataPoint[], 
+  dataset: MovieDataPoint[], 
   k: number
 ): KNNResult => {
-  // Calculate distances to all points
+  // Calculate standardization statistics
+  const stats = calculateStats(dataset);
+
+  // Calculate distances to all points using standardized values
   const distances: NeighborDistance[] = dataset.map((point, index) => ({
     point,
-    distance: calculateDistance(userPoint, point),
+    distance: calculateDistance(userPoint, point, stats),
     index
   }));
 
@@ -47,22 +64,19 @@ export const classifyWithKNN = (
     .sort((a, b) => a.distance - b.distance)
     .slice(0, k);
 
-  // Count votes for each species
-  const votes: { [key: string]: number } = {};
+  // Count votes for liked/not liked
+  let likedVotes = 0;
   neighbors.forEach(neighbor => {
-    votes[neighbor.point.species] = (votes[neighbor.point.species] || 0) + 1;
+    if (neighbor.point.likedMovie) {
+      likedVotes++;
+    }
   });
 
-  // Find the species with most votes
-  const prediction = Object.keys(votes).reduce((a, b) => 
-    votes[a] > votes[b] ? a : b
-  ) as 'setosa' | 'versicolor' | 'virginica';
-
-  // Calculate confidence percentages
-  const confidence: { [key: string]: number } = {};
-  Object.keys(votes).forEach(species => {
-    confidence[species] = (votes[species] / k) * 100;
-  });
+  // Determine if the movie will be liked based on majority vote
+  const prediction = likedVotes > k / 2;
+  
+  // Calculate confidence as percentage of agreeing votes
+  const confidence = (Math.max(likedVotes, k - likedVotes) / k);
 
   return {
     prediction,

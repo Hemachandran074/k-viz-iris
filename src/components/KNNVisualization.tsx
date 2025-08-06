@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { irisDataset, getSpeciesColor } from '@/data/irisData';
+import { movieDataset, getLikedColor } from '@/data/movieData';
 import { UserDataPoint, classifyWithKNN, KNNResult } from '@/utils/knn';
 
 interface KNNVisualizationProps {
@@ -45,7 +45,7 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
       }
       
       const startTime = Date.now();
-      const duration = 1000; // 1 second animation
+      const duration = 1500; // 1.5 second animation for smoother transitions
       
       const animate = () => {
         const elapsed = Date.now() - startTime;
@@ -78,22 +78,22 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
     // Clear canvas
     ctx.clearRect(0, 0, dimensions.width, dimensions.height);
 
-    // Set up coordinate system (using petal length vs petal width for 2D visualization)
+    // Set up coordinate system (using age vs hours streamed for 2D visualization)
     const margin = 60;
     const plotWidth = dimensions.width - 2 * margin;
     const plotHeight = dimensions.height - 2 * margin;
 
     // Data bounds
-    const minPetalLength = Math.min(...irisDataset.map(d => d.petalLength));
-    const maxPetalLength = Math.max(...irisDataset.map(d => d.petalLength));
-    const minPetalWidth = Math.min(...irisDataset.map(d => d.petalWidth));
-    const maxPetalWidth = Math.max(...irisDataset.map(d => d.petalWidth));
+    const minAge = Math.min(...movieDataset.map(d => d.age));
+    const maxAge = Math.max(...movieDataset.map(d => d.age));
+    const minHours = Math.min(...movieDataset.map(d => d.hoursStreamed));
+    const maxHours = Math.max(...movieDataset.map(d => d.hoursStreamed));
 
     // Scale functions
     const scaleX = (value: number) => 
-      margin + ((value - minPetalLength) / (maxPetalLength - minPetalLength)) * plotWidth;
+      margin + ((value - minAge) / (maxAge - minAge)) * plotWidth;
     const scaleY = (value: number) => 
-      dimensions.height - margin - ((value - minPetalWidth) / (maxPetalWidth - minPetalWidth)) * plotHeight;
+      dimensions.height - margin - ((value - minHours) / (maxHours - minHours)) * plotHeight;
 
     // Draw grid
     ctx.strokeStyle = 'hsl(var(--grid-line))';
@@ -137,20 +137,20 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
     ctx.fillStyle = 'hsl(var(--foreground))';
     ctx.font = '14px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('Petal Length', dimensions.width / 2, dimensions.height - 10);
+    ctx.fillText('Age', dimensions.width / 2, dimensions.height - 10);
     
     ctx.save();
     ctx.translate(15, dimensions.height / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Petal Width', 0, 0);
+    ctx.fillText('Hours Streamed/Week', 0, 0);
     ctx.restore();
 
     // Draw dataset points
-    irisDataset.forEach((point, index) => {
-      const x = scaleX(point.petalLength);
-      const y = scaleY(point.petalWidth);
+    movieDataset.forEach((point, index) => {
+      const x = scaleX(point.age);
+      const y = scaleY(point.hoursStreamed);
       
-      ctx.fillStyle = getSpeciesColor(point.species);
+      ctx.fillStyle = getLikedColor(point.likedMovie);
       ctx.beginPath();
       ctx.arc(x, y, 4, 0, 2 * Math.PI);
       ctx.fill();
@@ -164,10 +164,10 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
     // Classify and draw user point if it exists
     let classificationResult: KNNResult | null = null;
     if (userPoint) {
-      classificationResult = classifyWithKNN(userPoint, irisDataset, k);
+      classificationResult = classifyWithKNN(userPoint, movieDataset, k);
       
-      const userX = scaleX(userPoint.petalLength);
-      const userY = scaleY(userPoint.petalWidth);
+      const userX = scaleX(userPoint.age);
+      const userY = scaleY(userPoint.hoursStreamed);
 
       // Draw lines to k nearest neighbors with animation
       ctx.strokeStyle = 'hsl(var(--neighbor-line))';
@@ -175,12 +175,12 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
       ctx.setLineDash([5, 5]);
       
       classificationResult.neighbors.forEach((neighbor, index) => {
-        const neighborX = scaleX(neighbor.point.petalLength);
-        const neighborY = scaleY(neighbor.point.petalWidth);
+        const neighborX = scaleX(neighbor.point.age);
+        const neighborY = scaleY(neighbor.point.hoursStreamed);
         
         // Calculate line progress for this specific line
-        const lineDelay = index * 0.1; // Stagger each line by 100ms
-        const lineProgress = Math.max(0, Math.min(1, (animationProgress - lineDelay) / 0.8));
+        const lineDelay = (index / k) * 0.3; // Distribute delays evenly based on k
+        const lineProgress = Math.max(0, Math.min(1, (animationProgress - lineDelay) / 0.7));
         
         if (lineProgress > 0) {
           const endX = userX + (neighborX - userX) * lineProgress;
@@ -197,8 +197,8 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
 
       // Highlight k nearest neighbors
       classificationResult.neighbors.forEach((neighbor) => {
-        const neighborX = scaleX(neighbor.point.petalLength);
-        const neighborY = scaleY(neighbor.point.petalWidth);
+        const neighborX = scaleX(neighbor.point.age);
+        const neighborY = scaleY(neighbor.point.hoursStreamed);
         
         ctx.strokeStyle = 'hsl(var(--user-point))';
         ctx.lineWidth = 3;
@@ -232,16 +232,12 @@ const KNNVisualization: React.FC<KNNVisualizationProps> = ({
       />
       <div className="mt-4 flex flex-wrap gap-4 text-sm">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-iris-setosa"></div>
-          <span>Setosa</span>
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getLikedColor(true) }}></div>
+          <span>Liked Movie</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-iris-versicolor"></div>
-          <span>Versicolor</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-iris-virginica"></div>
-          <span>Virginica</span>
+          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getLikedColor(false) }}></div>
+          <span>Did Not Like Movie</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full bg-ml-userPoint"></div>

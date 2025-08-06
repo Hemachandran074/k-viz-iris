@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { KNNResult } from '@/utils/knn';
-import { getSpeciesColor } from '@/data/irisData';
+import { getLikedColor } from '@/data/movieData';
 
 interface ClassificationResultsProps {
   result: KNNResult | null;
@@ -13,9 +13,9 @@ const ClassificationResults: React.FC<ClassificationResultsProps> = ({ result, k
   if (!result) {
     return (
       <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Classification Results</h3>
+        <h3 className="text-lg font-semibold mb-4">Movie Recommendation Results</h3>
         <p className="text-muted-foreground">
-          Enter data point values to see classification results.
+          Enter user data to see if they might like "Cosmic Wanderers".
         </p>
       </Card>
     );
@@ -26,55 +26,45 @@ const ClassificationResults: React.FC<ClassificationResultsProps> = ({ result, k
   return (
     <Card className="p-6 space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-4">Classification Results</h3>
+        <h3 className="text-lg font-semibold mb-4">Movie Recommendation Results</h3>
         
         <div className="space-y-4">
           <div>
-            <h4 className="font-medium mb-2">Predicted Species</h4>
+            <h4 className="font-medium mb-2">Prediction</h4>
             <Badge 
               variant="secondary"
               className="text-lg px-4 py-2"
-              style={{ backgroundColor: getSpeciesColor(prediction), color: 'white' }}
+              style={{ backgroundColor: getLikedColor(prediction), color: 'white' }}
             >
-              {prediction.charAt(0).toUpperCase() + prediction.slice(1)}
+              {prediction ? "Will Like Movie" : "Won't Like Movie"}
             </Badge>
           </div>
 
           <div>
-            <h4 className="font-medium mb-2">Confidence Scores</h4>
+            <h4 className="font-medium mb-2">Confidence Score</h4>
             <div className="space-y-2">
-              {Object.entries(confidence)
-                .sort(([,a], [,b]) => b - a)
-                .map(([species, score]) => (
-                <div key={species} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between">
+                <span>Prediction Confidence</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
                     <div 
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: getSpeciesColor(species) }}
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${confidence * 100}%`,
+                        backgroundColor: getLikedColor(prediction)
+                      }}
                     />
-                    <span className="capitalize">{species}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full rounded-full transition-all duration-300"
-                        style={{ 
-                          width: `${score}%`,
-                          backgroundColor: getSpeciesColor(species)
-                        }}
-                      />
-                    </div>
-                    <span className="text-sm font-mono w-12 text-right">
-                      {score.toFixed(1)}%
-                    </span>
-                  </div>
+                  <span className="text-sm font-mono w-12 text-right">
+                    {(confidence * 100).toFixed(1)}%
+                  </span>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
 
           <div>
-            <h4 className="font-medium mb-2">Nearest Neighbors (K={k})</h4>
+            <h4 className="font-medium mb-2">Similar Users (K={k})</h4>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {neighbors.map((neighbor, index) => (
                 <div 
@@ -84,15 +74,13 @@ const ClassificationResults: React.FC<ClassificationResultsProps> = ({ result, k
                   <div className="flex items-center gap-2">
                     <div 
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: getSpeciesColor(neighbor.point.species) }}
+                      style={{ backgroundColor: getLikedColor(neighbor.point.likedMovie) }}
                     />
-                    <span className="capitalize">{neighbor.point.species}</span>
+                    <span>{neighbor.point.likedMovie ? "Liked" : "Didn't Like"}</span>
                   </div>
                   <div className="flex items-center gap-4 font-mono text-xs">
-                    <span>SL: {neighbor.point.sepalLength}</span>
-                    <span>SW: {neighbor.point.sepalWidth}</span>
-                    <span>PL: {neighbor.point.petalLength}</span>
-                    <span>PW: {neighbor.point.petalWidth}</span>
+                    <span>Age: {neighbor.point.age}</span>
+                    <span>Hours: {neighbor.point.hoursStreamed}</span>
                     <span className="font-semibold">
                       d: {neighbor.distance.toFixed(2)}
                     </span>

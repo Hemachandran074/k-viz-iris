@@ -22,10 +22,6 @@ const Index = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               K-Nearest Neighbors Classifier
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Explore how KNN classification works with the famous Iris dataset. 
-              Input your own flower measurements and see how the algorithm classifies it!
-            </p>
           </div>
         </div>
       </div>
@@ -53,11 +49,8 @@ const Index = () => {
             <div className="space-y-4">
               <div className="text-center">
                 <h2 className="text-2xl font-semibold mb-2">
-                  Iris Dataset Visualization
+                  Movie Dataset Visualization
                 </h2>
-                <p className="text-muted-foreground">
-                  Petal Length vs Petal Width • Lines connect to {k} nearest neighbors
-                </p>
               </div>
               
               <KNNVisualization

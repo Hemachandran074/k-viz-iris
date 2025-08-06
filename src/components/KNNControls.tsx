@@ -24,10 +24,8 @@ const KNNControls: React.FC<KNNControlsProps> = ({
     if (isNaN(numValue)) return;
 
     const newPoint = userPoint ? { ...userPoint } : {
-      sepalLength: 5.0,
-      sepalWidth: 3.0,
-      petalLength: 1.5,
-      petalWidth: 0.2,
+      age: 30,
+      hoursStreamed: 5,
     };
     
     newPoint[field] = numValue;
@@ -40,10 +38,8 @@ const KNNControls: React.FC<KNNControlsProps> = ({
 
   const handleRandomPoint = () => {
     const randomPoint: UserDataPoint = {
-      sepalLength: Math.random() * 3 + 4.5, // 4.5 - 7.5
-      sepalWidth: Math.random() * 2 + 2.0,  // 2.0 - 4.0
-      petalLength: Math.random() * 5 + 1.0, // 1.0 - 6.0
-      petalWidth: Math.random() * 2.5 + 0.1, // 0.1 - 2.6
+      age: Math.floor(Math.random() * 40 + 20), // 20 - 60 years
+      hoursStreamed: Math.floor(Math.random() * 19 + 1), // 1 - 20 hours
     };
     onUserPointChange(randomPoint);
   };
@@ -51,64 +47,38 @@ const KNNControls: React.FC<KNNControlsProps> = ({
   return (
     <Card className="p-6 space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-4">Input New Data Point</h3>
+        <h3 className="text-lg font-semibold mb-4">Input User Data</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="sepalLength">Sepal Length (cm)</Label>
+            <Label htmlFor="age">Age (years)</Label>
             <Input
-              id="sepalLength"
+              id="age"
               type="number"
-              step="0.1"
+              step="1"
               min="0"
-              max="10"
-              value={userPoint?.sepalLength || ''}
-              onChange={(e) => handleInputChange('sepalLength', e.target.value)}
-              placeholder="e.g., 5.1"
+              max="100"
+              value={userPoint?.age || ''}
+              onChange={(e) => handleInputChange('age', e.target.value)}
+              placeholder="e.g., 30"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sepalWidth">Sepal Width (cm)</Label>
+            <Label htmlFor="hoursStreamed">Hours Streamed per Week</Label>
             <Input
-              id="sepalWidth"
+              id="hoursStreamed"
               type="number"
-              step="0.1"
+              step="1"
               min="0"
-              max="10"
-              value={userPoint?.sepalWidth || ''}
-              onChange={(e) => handleInputChange('sepalWidth', e.target.value)}
-              placeholder="e.g., 3.5"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="petalLength">Petal Length (cm)</Label>
-            <Input
-              id="petalLength"
-              type="number"
-              step="0.1"
-              min="0"
-              max="10"
-              value={userPoint?.petalLength || ''}
-              onChange={(e) => handleInputChange('petalLength', e.target.value)}
-              placeholder="e.g., 1.4"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="petalWidth">Petal Width (cm)</Label>
-            <Input
-              id="petalWidth"
-              type="number"
-              step="0.1"
-              min="0"
-              max="10"
-              value={userPoint?.petalWidth || ''}
-              onChange={(e) => handleInputChange('petalWidth', e.target.value)}
-              placeholder="e.g., 0.2"
+              max="168"
+              value={userPoint?.hoursStreamed || ''}
+              onChange={(e) => handleInputChange('hoursStreamed', e.target.value)}
+              placeholder="e.g., 10"
             />
           </div>
         </div>
         <div className="flex gap-2 mt-4">
           <Button onClick={handleRandomPoint} variant="outline">
-            Generate Random Point
+            Generate Random User
           </Button>
           <Button onClick={handleClear} variant="outline">
             Clear
@@ -118,12 +88,12 @@ const KNNControls: React.FC<KNNControlsProps> = ({
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="k-slider">K Value: {k}</Label>
+          <Label htmlFor="k-slider">Number of Neighbors (K): {k}</Label>
           <Slider
             id="k-slider"
             min={1}
             max={15}
-            step={1}
+            step={2}
             value={[k]}
             onValueChange={(value) => onKChange(value[0])}
             className="w-full"
@@ -134,7 +104,7 @@ const KNNControls: React.FC<KNNControlsProps> = ({
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          K determines how many nearest neighbors to consider for classification.
+          K determines how many similar users to consider when predicting if you'll like the movie.
         </p>
       </div>
     </Card>
