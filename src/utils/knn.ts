@@ -1,12 +1,11 @@
-import { MovieDataPoint } from '@/data/movieData';
+import { DataPoint, Feature, Dataset } from '@/data/datasets';
 
 export interface UserDataPoint {
-  age: number;
-  hoursStreamed: number;
+  [key: string]: number;
 }
 
 export interface NeighborDistance {
-  point: MovieDataPoint;
+  point: DataPoint;
   distance: number;
   index: number;
 }
@@ -17,45 +16,99 @@ export interface KNNResult {
   confidence: number;
 }
 
+export type DistanceMetricType = 'euclidean' | 'manhattan' | 'minkowski';
+
 // Calculate mean and standard deviation for standardization
-const calculateStats = (data: MovieDataPoint[]) => {
-  const ageMean = data.reduce((sum, point) => sum + point.age, 0) / data.length;
-  const hoursMean = data.reduce((sum, point) => sum + point.hoursStreamed, 0) / data.length;
+export const calculateStats = (data: DataPoint[], features: Feature[]) => {
+  const stats: Record<string, { mean: number; std: number }> = {};
 
-  const ageStd = Math.sqrt(data.reduce((sum, point) => sum + Math.pow(point.age - ageMean, 2), 0) / data.length);
-  const hoursStd = Math.sqrt(data.reduce((sum, point) => sum + Math.pow(point.hoursStreamed - hoursMean, 2), 0) / data.length);
+  features.forEach(feature => {
+    const values = data.map(point => point[feature.key] as number).filter(v => v !== undefined);
+    const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+    const std = Math.sqrt(values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length);
 
-  return { ageMean, hoursMean, ageStd, hoursStd };
+    stats[feature.key] = { mean, std: std || 1 };
+  });
+
+  return stats;
 };
 
-// Calculate Euclidean distance between standardized points
-export const calculateDistance = (point1: UserDataPoint, point2: MovieDataPoint, stats: { ageMean: number, hoursMean: number, ageStd: number, hoursStd: number }): number => {
-  // Standardize the values
-  const age1Std = (point1.age - stats.ageMean) / stats.ageStd;
-  const hours1Std = (point1.hoursStreamed - stats.hoursMean) / stats.hoursStd;
-  const age2Std = (point2.age - stats.ageMean) / stats.ageStd;
-  const hours2Std = (point2.hoursStreamed - stats.hoursMean) / stats.hoursStd;
-  
-  // Calculate Euclidean distance on standardized values
-  const diff1 = age1Std - age2Std;
-  const diff2 = hours1Std - hours2Std;
-  
-  return Math.sqrt(diff1 * diff1 + diff2 * diff2);
+// Distance metric functions
+const euclideanDistance = (standardized1: number[], standardized2: number[]): number => {
+  let sum = 0;
+  for (let i = 0; i < standardized1.length; i++) {
+    const diff = standardized1[i] - standardized2[i];
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum);
+};
+
+const manhattanDistance = (standardized1: number[], standardized2: number[]): number => {
+  let sum = 0;
+  for (let i = 0; i < standardized1.length; i++) {
+    sum += Math.abs(standardized1[i] - standardized2[i]);
+  }
+  return sum;
+};
+
+const minkowskiDistance = (standardized1: number[], standardized2: number[], p: number = 3): number => {
+  let sum = 0;
+  for (let i = 0; i < standardized1.length; i++) {
+    sum += Math.pow(Math.abs(standardized1[i] - standardized2[i]), p);
+  }
+  return Math.pow(sum, 1 / p);
+};
+
+export const getDistanceMetric = (type: DistanceMetricType) => {
+  switch (type) {
+    case 'manhattan':
+      return (p1: number[], p2: number[]) => manhattanDistance(p1, p2);
+    case 'minkowski':
+      return (p1: number[], p2: number[]) => minkowskiDistance(p1, p2);
+    case 'euclidean':
+    default:
+      return (p1: number[], p2: number[]) => euclideanDistance(p1, p2);
+  }
+};
+
+// Calculate distance between two points using specified metric
+export const calculateDistance = (
+  point1: UserDataPoint,
+  point2: DataPoint,
+  features: Feature[],
+  stats: Record<string, { mean: number; std: number }>,
+  metric: DistanceMetricType = 'euclidean'
+): number => {
+  const standardized1: number[] = [];
+  const standardized2: number[] = [];
+
+  features.forEach(feature => {
+    const val1 = point1[feature.key] as number;
+    const val2 = point2[feature.key] as number;
+    const stat = stats[feature.key];
+
+    standardized1.push((val1 - stat.mean) / stat.std);
+    standardized2.push((val2 - stat.mean) / stat.std);
+  });
+
+  const distanceFn = getDistanceMetric(metric);
+  return distanceFn(standardized1, standardized2);
 };
 
 // Perform KNN classification
 export const classifyWithKNN = (
-  userPoint: UserDataPoint, 
-  dataset: MovieDataPoint[], 
-  k: number
+  userPoint: UserDataPoint,
+  dataset: Dataset,
+  k: number,
+  metric: DistanceMetricType = 'euclidean'
 ): KNNResult => {
   // Calculate standardization statistics
-  const stats = calculateStats(dataset);
+  const stats = calculateStats(dataset.data, dataset.features);
 
-  // Calculate distances to all points using standardized values
-  const distances: NeighborDistance[] = dataset.map((point, index) => ({
+  // Calculate distances to all points using the specified metric
+  const distances: NeighborDistance[] = dataset.data.map((point, index) => ({
     point,
-    distance: calculateDistance(userPoint, point, stats),
+    distance: calculateDistance(userPoint, point, dataset.features, stats, metric),
     index
   }));
 
@@ -74,9 +127,9 @@ export const classifyWithKNN = (
 
   // Determine if the movie will be liked based on majority vote
   const prediction = likedVotes > k / 2;
-  
+
   // Calculate confidence as percentage of agreeing votes
-  const confidence = (Math.max(likedVotes, k - likedVotes) / k);
+  const confidence = Math.max(likedVotes, k - likedVotes) / k;
 
   return {
     prediction,

@@ -54,5 +54,7 @@ export const movieDataset: MovieDataPoint[] = [
   { age: 31, hoursStreamed: 2, likedMovie: false },
   { age: 26, hoursStreamed: 10, likedMovie: true },
   { age: 43, hoursStreamed: 13, likedMovie: true },
-  { age: 19, hoursStreamed: 6, likedMovie: false }
+  { age: 19, hoursStreamed: 6, likedMovie: false },
+  { age: 18, hoursStreamed: 5, likedMovie: false },
+  { age: 12, hoursStreamed: 8, likedMovie: false },
 ];

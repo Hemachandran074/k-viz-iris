@@ -2,16 +2,25 @@ import React, { useState, useCallback } from 'react';
 import KNNVisualization from '@/components/KNNVisualization';
 import KNNControls from '@/components/KNNControls';
 import ClassificationResults from '@/components/ClassificationResults';
-import { UserDataPoint, KNNResult } from '@/utils/knn';
+import { UserDataPoint, KNNResult, DistanceMetricType } from '@/utils/knn';
+import { DATASETS, DEFAULT_DATASET, Dataset } from '@/data/datasets';
 
 const Index = () => {
   const [userPoint, setUserPoint] = useState<UserDataPoint | null>(null);
   const [k, setK] = useState<number>(3);
   const [classificationResult, setClassificationResult] = useState<KNNResult | null>(null);
+  const [selectedDataset, setSelectedDataset] = useState<Dataset>(DEFAULT_DATASET);
+  const [distanceMetric, setDistanceMetric] = useState<DistanceMetricType>('euclidean');
 
   const handleClassificationUpdate = useCallback((result: KNNResult | null) => {
     setClassificationResult(result);
   }, []);
+
+  const handleDatasetChange = (dataset: Dataset) => {
+    setSelectedDataset(dataset);
+    setUserPoint(null);
+    setClassificationResult(null);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -22,6 +31,9 @@ const Index = () => {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               K-Nearest Neighbors Classifier
             </h1>
+            <p className="text-muted-foreground">
+              Explore how KNN works with different datasets and distance metrics
+            </p>
           </div>
         </div>
       </div>
@@ -36,11 +48,17 @@ const Index = () => {
               onUserPointChange={setUserPoint}
               k={k}
               onKChange={setK}
+              selectedDataset={selectedDataset}
+              onDatasetChange={handleDatasetChange}
+              distanceMetric={distanceMetric}
+              onMetricChange={setDistanceMetric}
             />
-            
+
             <ClassificationResults
               result={classificationResult}
               k={k}
+              dataset={selectedDataset}
+              distanceMetric={distanceMetric}
             />
           </div>
 
@@ -49,14 +67,16 @@ const Index = () => {
             <div className="space-y-4">
               <div className="text-center">
                 <h2 className="text-2xl font-semibold mb-2">
-                  Movie Dataset Visualization
+                  {selectedDataset.name} Visualization
                 </h2>
               </div>
-              
+
               <KNNVisualization
                 userPoint={userPoint}
                 k={k}
                 onClassificationUpdate={handleClassificationUpdate}
+                dataset={selectedDataset}
+                distanceMetric={distanceMetric}
               />
             </div>
           </div>
@@ -69,7 +89,7 @@ const Index = () => {
             <div className="space-y-2">
               <div className="font-medium text-primary">1. Distance Calculation</div>
               <p className="text-muted-foreground">
-                Calculate the Euclidean distance from your input point to every point in the training dataset.
+                Calculate the distance from your input point to every point in the dataset using the selected metric (Euclidean, Manhattan, or Minkowski).
               </p>
             </div>
             <div className="space-y-2">
@@ -82,6 +102,31 @@ const Index = () => {
               <div className="font-medium text-primary">3. Majority Vote</div>
               <p className="text-muted-foreground">
                 The predicted class is the most common class among the K nearest neighbors.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Distance Metrics Info */}
+        <div className="mt-8 bg-card border border-border rounded-lg p-6">
+          <h3 className="text-xl font-semibold mb-4">Distance Metrics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+            <div className="space-y-2">
+              <div className="font-medium text-primary">Euclidean Distance</div>
+              <p className="text-muted-foreground">
+                Straight-line distance in multi-dimensional space. Most commonly used metric. Formula: √((x₁-x₂)² + (y₁-y₂)²)
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="font-medium text-primary">Manhattan Distance</div>
+              <p className="text-muted-foreground">
+                Grid-based distance, like moving through city blocks. Also called L1 distance. Formula: |x₁-x₂| + |y₁-y₂|
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="font-medium text-primary">Minkowski Distance</div>
+              <p className="text-muted-foreground">
+                Generalized distance metric with parameter p. With p=3, amplifies distant features more than Euclidean distance.
               </p>
             </div>
           </div>
